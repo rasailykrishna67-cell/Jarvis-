@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ne"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JARVIS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+:root{--c:#18e0ff;--a:#ffb300;--bg:#050b14;--p:#0b1a2b}
+html,body{height:100%}
+body{font-family:Hind,sans-serif;background:radial-gradient(circle at 50% 20%,#0d2238,var(--bg) 70%);color:#d8f6ff;overflow:hidden}
+h1{font:700 1.15rem Orbitron;letter-spacing:6px;text-align:center;color:var(--c);padding:max(10px,env(safe-area-inset-top)) 0 4px;text-shadow:0 0 12px var(--c)}
+.pn{display:none;height:calc(100% - 100px);overflow:auto;padding:0 14px}
+.pn.on{display:flex;flex-direction:column}
+#hud{width:min(62vw,34vh);aspect-ratio:1;margin:0 auto;display:block}
+#hear{text-align:center;color:var(--a);min-height:22px;font-size:.95rem}
+#chat{flex:1;overflow:auto;padding:6px 0;display:flex;flex-direction:column;gap:6px}
+.m{max-width:85%;padding:8px 12px;border-radius:14px;line-height:1.35;font-size:.95rem}
+.u{align-self:flex-end;background:#12385a;border:1px solid #1e6d9a}
+.j{align-self:flex-start;background:var(--p);border:1px solid #17506b;color:#bff3ff}
+.bar{display:flex;gap:8px;align-items:center;padding:8px 0}
+.bar input{flex:1}
+input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid #1e6d9a;background:var(--p);color:#d8f6ff;font:inherit}
+#mic{width:60px;height:60px;border-radius:50%;border:2px solid var(--c);background:#082033;color:var(--c);font-size:1.5rem;flex:none;box-shadow:0 0 14px #18e0ff66}
+#mic.on{border-color:var(--a);color:var(--a);box-shadow:0 0 22px var(--a);animation:pu .8s infinite alternate}
+@keyframes pu{to{transform:scale(1.12)}}
+.sb{padding:11px 16px;border-radius:12px;border:1px solid var(--c);background:#082033;color:var(--c);font:600 .95rem Hind}
+nav{position:fixed;bottom:0;left:0;right:0;height:52px;padding-bottom:env(safe-area-inset-bottom);display:flex;background:#030810;border-top:1px solid #17506b}
+nav button{flex:1;background:0;border:0;color:#5b8ea3;font:600 .78rem Hind}
+nav button.on{color:var(--c)}
+nav i{display:block;font-size:1.1rem}
+label{display:block;margin:12px 0 4px;color:var(--c);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #12384f}
+.row button{background:0;border:0;color:#ff6b6b;font-size:1rem}
+.g2{display:flex;gap:6px}
+small{color:#7fb2c6}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<h1>J.A.R.V.I.S</h1>
+
+<section id="p0" class="pn on">
+<canvas id="hud" width="520" height="520"></canvas>
+<div id="hear"></div>
+<div id="chat"></div>
+<div class="bar"><button id="mic" onclick="mic()" aria-label="Mic"><i class="fa-solid fa-microphone"></i></button><input id="ti" placeholder="कमान्ड लेख्नुहोस्..." onkeydown="if(event.key=='Enter')sendT()"><button class="sb" onclick="sendT()"><i class="fa-solid fa-paper-plane"></i></button></div>
+</section>
+
+<section id="p1" class="pn"><label>नोटहरू</label><div id="nl"></div><button class="sb" style="margin-top:12px" onclick="S.notes=[];sv();rn()">सबै मेटाउनुहोस्</button><label>इतिहास</label><button class="sb" onclick="S.log=[];sv();$('#chat').innerHTML=''">च्याट इतिहास खाली गर्नुहोस्</button></section>
+
+<section id="p2" class="pn">
+<label>भाषा (आवाज आदेश)</label><select id="sl" onchange="S.lang=this.value;sv()"><option value="ne-NP">नेपाली</option><option value="hi-IN">हिन्दी</option><option value="en-US">English</option></select>
+<label>Jarvis ले आवाजमा बोल्ने</label><select id="st" onchange="S.tts=+this.value;sv()"><option value="1">ON</option><option value="0">OFF</option></select>
+<label>"Hey Jarvis" वेक-वर्ड (एप खुला हुँदा मात्र)</label><select id="sw" onchange="S.wake=+this.value;sv();S.wake?startWake():stopWake()"><option value="0">OFF</option><option value="1">ON</option></select>
+<label>AI च्याट API key (Anthropic)</label><input id="sk" type="password" placeholder="sk-ant-..." onchange="S.key=this.value.trim();sv()"><small>बिना key भए AI च्याट बन्द रहन्छ, कमान्डहरू चलिरहन्छन्।</small>
+<label>सम्पर्क थप्नुहोस् (कल/मेसेजका लागि)</label>
+<div class="g2"><input id="cn" placeholder="नाम (जस्तै बुवा)"><input id="cp" placeholder="+977..." inputmode="tel"></div>
+<button class="sb" style="margin-top:6px" onclick="addC()">थप्नुहोस्</button><div id="cl"></div>
+<label>आफ्नै कमान्ड</label>
+<div class="g2"><input id="kp" placeholder="वाक्य (जस्तै मेरो बैंक)"><input id="ku" placeholder="https://... वा जवाफ"></div>
+<button class="sb" style="margin-top:6px" onclick="addK()">थप्नुहोस्</button><div id="kl"></div>
+<div style="height:20px"></div>
+</section>
+
+<nav><button class="on" onclick="tab(0)"><i class="fa-solid fa-microphone-lines"></i>Jarvis</button><button onclick="tab(1)"><i class="fa-solid fa-note-sticky"></i>नोट</button><button onclick="tab(2)"><i class="fa-solid fa-gear"></i>सेटिङ</button></nav>
+
+<script>
+const $=s=>document.querySelector(s);
+let S={lang:'ne-NP',tts:1,wake:0,key:'',contacts:{},cmds:[],notes:[],hist:[],log:[]};
+try{Object.assign(S,JSON.parse(localStorage.getItem('jv')||'{}'))}catch(e){}
+const sv=()=>{try{localStorage.setItem('jv',JSON.stringify(S))}catch(e){}};
+const AB=window.Android||null;
+// Native bridge (Sketchware addJavascriptInterface "Android"): call(num) sms(num,body) openApp(name) flash(bool) toggle(name,bool) setting(name,val) alarm(h,m,label)
+const nat=(f,...a)=>{if(AB&&typeof AB[f]=='function'){AB[f](...a);return true}return false};
+const NEED='यो काम गर्न Android ब्रिज (Sketchware) चाहिन्छ।';
+const go=u=>{location.href=u};
+const esc=encodeURIComponent;
+function tab(n){document.querySelectorAll('.pn').forEach((e,i)=>e.classList.toggle('on',i==n));document.querySelectorAll('nav button').forEach((e,i)=>e.classList.toggle('on',i==n));if(n==1)rn()}
+function log(x,w,keep=1){const d=document.createElement('div');d.className='m '+w;d.textContent=x;$('#chat').append(d);$('#chat').scrollTop=1e9;if(keep){S.log.push({w,x});S.log=S.log.slice(-40);sv()}}
+let mode='idle';
+function beep(){try{const a=new AudioContext(),o=a.createOscillator();o.frequency.value=880;o.connect(a.destination);o.start();o.stop(a.currentTime+.4)}catch(e){}}
+function say(x){log(x,'j');if(!S.tts||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x);u.lang=/[ऀ-ॿ]/.test(x)?'hi-IN':'en-US';u.onstart=()=>mode='speak';u.onend=()=>mode='idle';speechSynthesis.speak(u)}
+
+// ===== HUD =====
+const cv=$('#hud'),cx=cv.getContext('2d');let ang=0;
+function draw(){const w=cv.width,c=w/2;cx.clearRect(0,0,w,w);ang+=.01;
+const col=mode=='listen'?'#ffb300':mode=='speak'?'#3dffa0':'#18e0ff',amp=mode=='idle'?.1:Math.random()*.6+.4;
+[[.46,[6,10],1],[.38,[2,6],-1.6],[.3,[20,8],2.2]].forEach(([r,d,s])=>{cx.save();cx.translate(c,c);cx.rotate(ang*s);cx.setLineDash(d);cx.strokeStyle=col;cx.lineWidth=3;cx.beginPath();cx.arc(0,0,w*r,0,7);cx.stroke();cx.restore()});
+cx.setLineDash([]);cx.lineWidth=2;cx.strokeStyle=col;
+for(let i=0;i<48;i++){const a=i/48*6.283,l=w*(.04+amp*.07*Math.random());cx.beginPath();cx.moveTo(c+Math.cos(a)*w*.2,c+Math.sin(a)*w*.2);cx.lineTo(c+Math.cos(a)*(w*.2+l),c+Math.sin(a)*(w*.2+l));cx.stroke()}
+const g=cx.createRadialGradient(c,c,0,c,c,w*.18);g.addColorStop(0,'#fff');g.addColorStop(.4,col);g.addColorStop(1,'transparent');cx.fillStyle=g;cx.beginPath();cx.arc(c,c,w*.18,0,7);cx.fill();requestAnimationFrame(draw)}
+draw();
+
+// ===== Voice input =====
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,wk=null,lis=false;
+function mic(){if(lis){rec&&rec.stop();return}if(!SR)return say('यो ब्राउजरमा आवाज इनपुट चल्दैन, कमान्ड टाइप गर्नुहोस्।');
+stopWake();rec=new SR();rec.lang=S.lang;rec.interimResults=true;
+rec.onstart=()=>{lis=true;mode='listen';$('#mic').classList.add('on')};
+rec.onresult=e=>{const r=e.results[e.results.length-1];$('#hear').textContent=r[0].transcript;if(r.isFinal){$('#hear').textContent='';run(r[0].transcript)}};
+rec.onend=()=>{lis=false;if(mode=='listen')mode='idle';$('#mic').classList.remove('on');setTimeout(startWake,600)};
+rec.onerror=()=>{};rec.start()}
+const WK=/jarvis|जार्विस|जार्भिस|जर्विस/;
+function startWake(){if(!S.wake||lis||wk||!SR)return;wk=new SR();wk.continuous=true;wk.lang=S.lang;
+wk.onresult=e=>{const x=e.results[e.results.length-1][0].transcript.toLowerCase();if(WK.test(x)){const rest=x.replace(/.*(jarvis|जार्विस|जार्भिस|जर्विस)/,'').trim();stopWake();rest.length>2?run(rest):(say('हजुर?'),setTimeout(mic,1200))}};
+wk.onend=()=>{wk=null;setTimeout(startWake,700)};try{wk.start()}catch(e){wk=null}}
+function stopWake(){if(wk){wk.onend=null;try{wk.stop()}catch(e){}wk=null}}
+function sendT(){const v=$('#ti').value.trim();if(v){$('#ti').value='';run(v)}}
+
+// ===== Command engine =====
+const norm=s=>s.toLowerCase().replace(/[०-९]/g,d=>'०१२३४५६७८९'.indexOf(d)).replace(/[?!।,]/g,' ').replace(/\s+/g,' ').trim();
+const has=(t,a)=>a.some(w=>t.includes(w));
+const FW=new Set('call phone message text sms whatsapp open launch start jarvis hey please to the a my navigate search play फोन कल कॉल खोल खोलो खोल्नुहोस् गर गर्नुहोस् गरिदेऊ गरिदेउ गरदे कर करो करदो मेसेज सन्देश संदेश भेज पठाऊ पठाउ में को के जाऊ जाउ देखाऊ देखाउ बजाऊ बजाउ खोज सर्च लगाऊ चलाऊ'.split(' '));
+const arg=t=>t.split(' ').map(w=>w.replace(/(लाई|लाइ)$/,'')).filter(w=>w&&!FW.has(w)).join(' ');
+const OFF=['off','बन्द','बंद','निभाऊ','निभा'],UP=['up','increase','बढाऊ','बढा','बढ़ाओ','बढ़ा','louder'],DOWN=['down','decrease','घटाऊ','घटा','कम'];
+const U={सेकेन्ड:1,सेकेण्ड:1,second:1,sec:1,मिनेट:60,मिनट:60,minute:60,min:60,घण्टा:3600,घंटा:3600,घन्टा:3600,hour:3600};
+const dur=t=>{const m=t.match(/(\d+(?:\.\d+)?)\s*(सेकेन्ड|सेकेण्ड|second|sec|मिनेट|मिनट|minute|min|घण्टा|घंटा|घन्टा|hour)/);return m?{s:+m[1]*U[m[2]],raw:m[0]}:null};
+const APPS={youtube:'https://m.youtube.com',यूट्युब:'https://m.youtube.com',युट्युब:'https://m.youtube.com',google:'https://www.google.com',गुगल:'https://www.google.com',maps:'https://maps.google.com',नक्सा:'https://maps.google.com',gmail:'https://mail.google.com',whatsapp:'https://wa.me',व्हाट्सएप:'https://wa.me',facebook:'https://m.facebook.com',फेसबुक:'https://m.facebook.com',instagram:'https://www.instagram.com',इन्स्टाग्राम:'https://www.instagram.com',tiktok:'https://www.tiktok.com',spotify:'https://open.spotify.com',messenger:'https://m.me'};
+function findC(t){for(const n of Object.keys(S.contacts)){if(t.includes(norm(n)))return[n,S.contacts[n]]}const m=t.match(/\+?\d{7,}/);return m?[m[0],m[0]]:null}
+function setAlarm(h,m){if(nat('alarm',h,m,'Jarvis'))return say(`अलार्म ${h}:${String(m).padStart(2,'0')} मा सेट भयो।`);
+const d=new Date();d.setHours(h,m,0,0);if(d<=new Date())d.setDate(d.getDate()+1);setTimeout(()=>{beep();say('अलार्म! समय भयो।')},d-new Date());say(`अलार्म ${h}:${String(m).padStart(2,'0')} मा सेट भयो (एप खुला रहनुपर्छ)।`)}
+async function weather(){say('मौसम हेर्दै छु...');navigator.geolocation.getCurrentPosition(async p=>{try{const r=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.coords.latitude}&longitude=${p.coords.longitude}&current_weather=true`)).json(),c=r.current_weather;say(`अहिले तापक्रम ${c.temperature}°C र हावाको गति ${c.windspeed} km/h छ।`)}catch(e){say('मौसम ल्याउन सकिएन।')}},()=>say('लोकेसन अनुमति चाहिन्छ।'))}
+async function torch(on){if(nat('flash',on))return say(on?'फ्ल्यासलाइट बल्यो।':'फ्ल्यासलाइट निभ्यो।');
+try{if(!on){window.TS&&TS.getTracks().forEach(x=>x.stop());window.TS=null;return say('फ्ल्यासलाइट निभ्यो।')}
+window.TS=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});await TS.getVideoTracks()[0].applyConstraints({advanced:[{torch:true}]});say('फ्ल्यासलाइट बल्यो।')}catch(e){say('यो फोनमा ब्राउजरबाट टर्च चल्दैन। '+NEED)}}
+
+function handle(raw){const t=norm(raw);
+for(const k of S.cmds)if(t.includes(norm(k.p))){/^(https?:|tel:|geo:|sms:)/.test(k.u)?(say('ठीक छ।'),go(k.u)):say(k.u);return 1}
+const dr=dur(t);
+if(has(t,['remind','सम्झा','याद दिला','reminder'])&&dr){const x=arg(t.replace(dr.raw,'').replace(/remind me|remind|reminder|सम्झाऊ|सम्झा|याद दिलाऊ|याद दिला|मा|in/g,' ').replace(/\s+/g,' ').trim())||'रिमाइन्डर';setTimeout(()=>{beep();say('रिमाइन्डर: '+x)},dr.s*1000);say(`ठीक छ, ${dr.raw} पछि सम्झाउँछु: ${x}`);return 1}
+if(has(t,['timer','टाइमर'])&&dr){setTimeout(()=>{beep();say('टाइमर सकियो!')},dr.s*1000);say(`${dr.raw} को टाइमर सुरु भयो।`);return 1}
+if(has(t,['alarm','अलार्म'])){const m=t.match(/(\d{1,2})[:.](\d{2})/)||t.match(/(\d{1,2})()\s*(?:am|pm|बजे)/);if(m){let h=+m[1];const mi=+(m[2]||0);if(/pm/.test(t)&&h<12)h+=12;setAlarm(h,mi)}else say('कति बजेको अलार्म? जस्तै "अलार्म 7:30"।');return 1}
+if(has(t,['whatsapp','व्हाट्सएप','ह्वाट्सएप','message','sms','मेसेज','सन्देश','संदेश','text '])){const c=findC(t);if(!c){say('सम्पर्क फेला परेन। सेटिङमा नाम र नम्बर थप्नुहोस्।');return 1}
+const body=arg(t.replace(norm(c[0]),'').replace(/\+?\d{7,}/,'').replace(/whatsapp|व्हाट्सएप|ह्वाट्सएप/g,'').trim());const wa=has(t,['whatsapp','व्हाट्सएप','ह्वाट्सएप']);
+say(`${c[0]}लाई ${wa?'WhatsApp':'SMS'} खोल्दै छु।`);if(wa)go(`https://wa.me/${c[1].replace(/\D/g,'')}?text=${esc(body)}`);else nat('sms',c[1],body)||go(`sms:${c[1]}?body=${esc(body)}`);return 1}
+if(has(t,['call','फोन','कल','कॉल','ring'])){const c=findC(t);if(!c){say('सम्पर्क फेला परेन। सेटिङमा नाम र नम्बर थप्नुहोस्।');return 1}say(`${c[0]}लाई फोन गर्दै छु।`);nat('call',c[1])||go('tel:'+c[1]);return 1}
+if(has(t,['navigate','direction','route','बाटो','नेभिगेसन','डाइरेक्सन','जाने'])){const d=arg(t.replace(/direction|directions|route|बाटो|नेभिगेसन|डाइरेक्सन|जाने|to/g,' ').trim());say(`${d} को बाटो देखाउँदै छु।`);go('https://www.google.com/maps/dir/?api=1&destination='+esc(d));return 1}
+if(has(t,['weather','मौसम','temperature','तापक्रम'])){weather();return 1}
+if(has(t,['कति बज्यो','कितने बजे','what time','the time','समय'])){say(new Date().toLocaleTimeString(S.lang,{hour:'2-digit',minute:'2-digit'}));return 1}
+if(has(t,['date','मिति','तारिख','today','आजको दिन'])){say(new Date().toLocaleDateString(S.lang,{weekday:'long',year:'numeric',month:'long',day:'numeric'}));return 1}
+if(has(t,['torch','flashlight','टर्च','फ्ल्यास','फ्लैश'])){torch(!has(t,OFF));return 1}
+for(const [n,ks] of [['wifi',['wifi','वाइफाइ','वाईफाई']],['bluetooth',['bluetooth','ब्लुटुथ','ब्लूटूथ']]])if(has(t,ks)){const on=!has(t,OFF);nat('toggle',n,on)?say(`${n} ${on?'अन':'बन्द'} गरियो।`):say(NEED);return 1}
+for(const [n,ks] of [['volume',['volume','भोल्युम','भोल्यूम','आवाज']],['brightness',['brightness','ब्राइटनेस']]])if(has(t,ks)){const m=t.match(/\d+/),v=m?m[0]:has(t,UP)?'+':has(t,DOWN)?'-':'+';nat('setting',n,v)?say(`${n} मिलाइयो।`):say(NEED);return 1}
+if(has(t,['note','नोट'])){if(has(t,['show','read','list','देखाऊ','देखा','पढ','सबै'])){say(S.notes.length?S.notes.map((x,i)=>`${i+1}. ${x}`).join('। '):'कुनै नोट छैन।');return 1}const x=arg(t.replace(/note|नोट|लेख|लेख्नुहोस्|राख/g,' ').trim());if(x){S.notes.push(x);sv();say('नोट सेभ गरें: '+x)}else say('के लेख्ने?');return 1}
+if(has(t,['search','google','खोज','सर्च'])){const q=arg(t.replace(/google|गुगल|मा|on/g,' ').trim());say(`"${q}" खोज्दै छु।`);go('https://www.google.com/search?q='+esc(q));return 1}
+if(has(t,['play','बजाऊ','बजाउ','गीत','song','music','यूट्युबमा','युट्युबमा'])){const q=arg(t.replace(/youtube|यूट्युब|युट्युब|मा|on|गीत|song|music/g,' ').trim())||'music';say(`"${q}" YouTube मा खोज्दै छु।`);go('https://m.youtube.com/results?search_query='+esc(q));return 1}
+if(has(t,['open','खोल','launch'])){const a=arg(t);const k=Object.keys(APPS).find(x=>a.includes(x));say(`${a||'एप'} खोल्दै छु।`);if(nat('openApp',a))return 1;if(k)go(APPS[k]);else say('यो एप खोल्न Android ब्रिज चाहिन्छ।');return 1}
+const cm=t.match(/(\d+(?:\.\d+)?)\s*(km|किलोमिटर|mile|miles|kg|किलो|lb|pound|celsius|fahrenheit)/);
+if(cm&&has(t,['in','to','मा','convert'])){const v=+cm[1],u=cm[2],R={km:[v*.621371,'miles'],किलोमिटर:[v*.621371,'miles'],mile:[v*1.60934,'km'],miles:[v*1.60934,'km'],kg:[v*2.20462,'lb'],किलो:[v*2.20462,'lb'],lb:[v*.453592,'kg'],pound:[v*.453592,'kg'],celsius:[v*9/5+32,'°F'],fahrenheit:[(v-32)*5/9,'°C']}[u];say(`${v} ${u} = ${R[0].toFixed(2)} ${R[1]}`);return 1}
+if(/\d/.test(t)&&has(t,['calculate','plus','minus','times','divided','जोड','घटा','गुणा','भाग','+','*','/','कति हुन्छ','कति हुन्छ'])||/^[\d+\-*/().\s]+$/.test(t)&&/[+\-*/]/.test(t)){const e=t.replace(/plus|जोड्नु|जोड/g,'+').replace(/minus|घटाउ|घटा/g,'-').replace(/times|गुणा|x/g,'*').replace(/divided by|divided|भाग/g,'/').replace(/[^\d+\-*/().]/g,'');
+if(/^[\d+\-*/().]+$/.test(e)){try{const r=Function('return '+e)();if(isFinite(r)){say(`${e} = ${+r.toFixed(6)}`);return 1}}catch(x){}}}
+return 0}
+
+async function ai(q){if(!S.key)return say('मैले बुझिनँ। AI च्याटका लागि सेटिङमा API key राख्नुहोस्, वा "फोन", "अलार्म", "मौसम" जस्ता कमान्ड भन्नुहोस्।');
+S.hist.push({role:'user',content:q});S.hist=S.hist.slice(-8);mode='speak';
+try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-5-5',max_tokens:300,system:"You are Jarvis, a concise voice assistant on a phone. Reply in the user's language, max 2 short sentences, no markdown.",messages:S.hist})});
+const d=await r.json();if(!d.content)throw 0;const a=d.content[0].text;S.hist.push({role:'assistant',content:a});sv();say(a)}catch(e){S.hist.pop();say('AI सँग जोडिन सकिएन। नेटवर्क वा API key जाँच्नुहोस्।')}}
+function run(x){log(x,'u');if(!handle(x))ai(x)}
+
+// ===== Settings / notes =====
+function rn(){$('#nl').innerHTML='';(S.notes.length?S.notes:['कुनै नोट छैन']).forEach((n,i)=>{const d=document.createElement('div');d.className='row';d.textContent=n;if(S.notes.length){const b=document.createElement('button');b.innerHTML='<i class="fa-solid fa-trash"></i>';b.onclick=()=>{S.notes.splice(i,1);sv();rn()};d.append(b)}$('#nl').append(d)})}
+function lst(el,items,del){el.innerHTML='';items.forEach(([a,i])=>{const d=document.createElement('div');d.className='row';d.textContent=a;const b=document.createElement('button');b.innerHTML='<i class="fa-solid fa-trash"></i>';b.onclick=()=>del(i);d.append(b);el.append(d)})}
+function rs(){lst($('#cl'),Object.keys(S.contacts).map(k=>[k+': '+S.contacts[k],k]),k=>{delete S.contacts[k];sv();rs()});lst($('#kl'),S.cmds.map((k,i)=>[k.p+' → '+k.u,i]),i=>{S.cmds.splice(i,1);sv();rs()})}
+function addC(){const n=$('#cn').value.trim(),p=$('#cp').value.trim();if(!n||!/^\+?\d{7,15}$/.test(p))return say('नाम र सही नम्बर राख्नुहोस्।');S.contacts[n]=p;sv();$('#cn').value=$('#cp').value='';rs()}
+function addK(){const p=$('#kp').value.trim(),u=$('#ku').value.trim();if(!p||!u)return;S.cmds.push({p,u});sv();$('#kp').value=$('#ku').value='';rs()}
+$('#sl').value=S.lang;$('#st').value=S.tts;$('#sw').value=S.wake;$('#sk').value=S.key;rs();
+S.log.forEach(m=>log(m.x,m.w,0));
+if(!S.log.length)log('नमस्ते! म Jarvis। माइक थिचेर आदेश दिनुहोस्, जस्तै "बुवालाई फोन गर", "५ मिनेटको टाइमर", "मौसम कस्तो छ"।','j',0);
+if(S.wake)startWake();
+</script></body></html>
